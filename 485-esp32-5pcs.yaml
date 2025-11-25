@@ -16,8 +16,8 @@ esphome:
   name: ${esp_name}
   comment: ${device_description}
   project:
-    name: "txubelaxu.esphome-jk-bms"
-    version: 1.0.0
+    name: "syssi.esphome-bms"
+    version: 2.2.0
   #includes:
     #- ./components/output/binary_output.h
     #- ./components/jk_rs485_sniffer/gpio.h
