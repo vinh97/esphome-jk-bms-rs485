@@ -1,0 +1,386 @@
+
+substitutions:
+  name: jk-bms   #Name ESPHome quan li
+  bms1: "${name} bms1"  # BMS1
+  device_description: "Monitor and control a 2 JK-BMS via bluetooth"
+  external_components_source: github://syssi/esphome-jk-bms@main
+  bms1_mac_address: C8:47:80:25:5B:C5  # MAC bms1
+  # Please use "JK02_24S" if you own a old JK-BMS < hardware version 11.0 (hardware version >= 6.0 and < 11.0)
+  # Please use "JK02_32S" if you own a new JK-BMS >= hardware version 11.0 (f.e. JK-B2A8S20P hw 11.XW, sw 11.26)
+  # Please use "JK04" if you have some old JK-BMS <= hardware version 3.0 (f.e. JK-B2A16S hw 3.0, sw. 3.3.0)
+  # Chon chuan giao tiep theo BMS
+  bms1_protocol_version: JK02_32S
+
+esphome:
+  name: ${name}
+  comment: ${device_description}
+  min_version: 2024.6.0
+  project:
+    name: "syssi.esphome-jk-bms"
+    version: 2.1.0
+       
+esp32:
+  board: esp32-s3-devkitc-1
+  framework:
+    type: esp-idf
+
+external_components:
+  - source: ${external_components_source}
+    refresh: 0s
+
+#Wifi ESP ket noi , neu chon SECRETS thi sua tren HA khoa bi mat them (#code) khong su dung
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+#wifi:
+  #networks:
+     #ssid: "WIFI" #ten wifi esp ket noi vao
+     #password: "01234565" #mat khau wifi ( bat buoc dung wifi co mat khau nhe)
+     
+  ap:
+    ssid: "ESP WIFI"
+    password: "12345678"
+    
+   #manual_ip:
+    #static_ip: 192.168.1.156 #ip tinh esp ( nen dat ip khac ip old de tien quan ly)
+    #gateway: 192.168.1.1
+    #subnet: 255.255.255.0
+    #dns1: 192.168.1.1
+    #dns2: 8.8.8.8
+
+# Cau hinh OTA - Cap nhat firmware qua mang WiFi
+ota:
+   platform: esphome
+   on_begin:
+    then:
+      - switch.turn_off: ble_client_switch1
+      - logger.log: "BLE connection suspended for OTA update"
+
+logger:
+  level: DEBUG
+  logs:
+    esp32_ble_tracker: INFO
+    esp32_ble_client: INFO
+
+# If you don't use Home Assistant please remove this `api` section and uncomment the `mqtt` component!
+api:
+  encryption:
+    key: "ZJ2jcsz0U9HzC8RLlbU0u8kdBxQqcezVYXRW5Rsa6N4="   #key api luc tao goi flash esp32 moi
+
+# mqtt:
+#   broker: !secret mqtt_host
+#   username: !secret mqtt_username
+#   password: !secret mqtt_password
+#   id: mqtt_client
+
+esp32_ble_tracker:
+  scan_parameters:
+    active: true
+    interval: 1600ms
+    window: 1200ms
+  
+ble_client:
+  - mac_address: ${bms1_mac_address}
+    id: client1
+
+jk_bms_ble:
+  - ble_client_id: client1
+    protocol_version: ${bms1_protocol_version}
+    throttle: 3s
+    id: bms1
+           
+
+binary_sensor:
+  - platform: status
+    name: "ESP Device Status"
+    
+  - platform: jk_bms_ble
+    jk_bms_ble_id: bms1
+    balancing:
+      name: "${bms1} balancing"
+    charging:
+      name: "${bms1} charging"
+    discharging:
+      name: "${bms1} discharging"
+    online_status:
+      name: "${bms1} online status"
+    heating:
+      name: "${bms1} heating"
+    dry_contact_1:
+      name: "${bms1} dry contact 1"
+    dry_contact_2:
+      name: "${bms1} dry contact 2"
+
+button:
+  - platform: jk_bms_ble
+    jk_bms_ble_id: bms1
+    retrieve_settings:
+      name: "${bms1} retrieve settings"
+    retrieve_device_info:
+      name: "${bms1} retrieve device info"
+
+  - platform: restart
+    name: ${name} restart
+
+number:
+  - platform: jk_bms_ble
+    jk_bms_ble_id: bms1
+    balance_trigger_voltage:
+      name: "${bms1} balance trigger voltage"
+    cell_count:
+      name: "${bms1} cell count"
+    total_battery_capacity:
+      name: "${bms1} total battery capacity"
+    cell_voltage_overvoltage_protection:
+      name: "${bms1} cell voltage overvoltage protection"
+    cell_voltage_overvoltage_recovery:
+      name: "${bms1} cell voltage overvoltage recovery"
+    cell_voltage_undervoltage_protection:
+      name: "${bms1} cell voltage undervoltage protection"
+    cell_voltage_undervoltage_recovery:
+      name: "${bms1} cell voltage undervoltage recovery"
+    balance_starting_voltage:
+      name: "${bms1} balance starting voltage"
+    voltage_calibration:
+      name: "${bms1} voltage calibration"
+    current_calibration:
+      name: "${bms1} current calibration"
+    power_off_voltage:
+      name: "${bms1} power off voltage"
+    max_balance_current:
+      name: "${bms1} max balance current"
+    max_charge_current:
+      name: "${bms1} max charge current"
+    max_discharge_current:
+      name: "${bms1} max discharge current"
+    smart_sleep_voltage:
+      name: "${bms1} smart sleep voltage"
+    cell_soc100_voltage:
+      name: "${bms1} cell soc100 voltage"
+    cell_soc0_voltage:
+      name: "${bms1} cell soc0 voltage"
+    cell_request_charge_voltage:
+      name: "${bms1} cell request charge voltage"
+    cell_request_float_voltage:
+      name: "${bms1} cell request float voltage"
+    cell_request_charge_voltage_time:
+      name: "${bms1} cell request charge voltage time"
+    cell_request_float_voltage_time:
+      name: "${bms1} cell request float voltage time"
+    charge_overcurrent_protection_delay:
+      name: "${bms1} charge overcurrent protection delay"
+    charge_overcurrent_protection_recovery_time:
+      name: "${bms1} charge overcurrent protection recovery time"
+    discharge_overcurrent_protection_delay:
+      name: "${bms1} discharge overcurrent protection delay"
+    discharge_overcurrent_protection_recovery_time:
+      name: "${bms1} discharge overcurrent protection recovery time"
+    short_circuit_protection_delay:
+      name: "${bms1} short circuit protection delay"
+    short_circuit_protection_recovery_time:
+      name: "${bms1} short circuit protection recovery time"
+    charge_overtemperature_protection:
+      name: "${bms1} charge overtemperature protection"
+    charge_overtemperature_protection_recovery:
+      name: "${bms1} charge overtemperature protection recovery"
+    discharge_overtemperature_protection:
+      name: "${bms1} discharge overtemperature protection"
+    discharge_overtemperature_protection_recovery:
+      name: "${bms1} discharge overtemperature protection recovery"
+    charge_undertemperature_protection:
+      name: "${bms1} charge undertemperature protection"
+    charge_undertemperature_protection_recovery:
+      name: "${bms1} charge undertemperature protection recovery"
+    power_tube_overtemperature_protection:
+      name: "${bms1} power tube overtemperature protection"
+    power_tube_overtemperature_protection_recovery:
+      name: "${bms1} power tube overtemperature protection recovery"
+
+sensor:
+  - platform: jk_bms_ble
+    jk_bms_ble_id: bms1
+    min_cell_voltage:
+      name: "Bms1 Min Cell Voltage"
+      id: device1_min_voltage
+    max_cell_voltage:
+      name: "Bms1 Max Cell Voltage"
+      id: device1_max_voltage
+    min_voltage_cell:
+      name: "Bms1 min voltage cell"
+    max_voltage_cell:
+      name: "Bms1 max voltage cell"
+    delta_cell_voltage:
+      name: "Bms1 delta cell voltage"
+      id: device1_delta_voltage
+    average_cell_voltage:
+      name: "Bms1 average cell voltage"
+    cell_voltage_1:
+      name: "Bms1 cell voltage 1"
+    cell_voltage_2:
+      name: "Bms1 cell voltage 2"
+    cell_voltage_3:
+      name: "Bms1 cell voltage 3"
+    cell_voltage_4:
+      name: "Bms1 cell voltage 4"
+    cell_voltage_5:
+      name: "Bms1 cell voltage 5"
+    cell_voltage_6:
+      name: "Bms1 cell voltage 6"
+    cell_voltage_7:
+      name: "Bms1 cell voltage 7"
+    cell_voltage_8:
+      name: "Bms1 cell voltage 8"
+    cell_voltage_9:
+      name: "Bms1 cell voltage 9"
+    cell_voltage_10:
+      name: "Bms1 cell voltage 10"
+    cell_voltage_11:
+      name: "Bms1 cell voltage 11"
+    cell_voltage_12:
+      name: "Bms1 cell voltage 12"
+    cell_voltage_13:
+      name: "Bms1 cell voltage 13"
+    cell_voltage_14:
+      name: "Bms1 cell voltage 14"
+    cell_voltage_15:
+      name: "Bms1 cell voltage 15"
+    cell_voltage_16:
+      name: "Bms1 cell voltage 16"
+    cell_resistance_1:
+      name: "Bms1 cell resistance 1"
+    cell_resistance_2:
+      name: "Bms1 cell resistance 2"
+    cell_resistance_3:
+      name: "Bms1 cell resistance 3"
+    cell_resistance_4:
+      name: "Bms1 cell resistance 4"
+    cell_resistance_5:
+      name: "Bms1 cell resistance 5"
+    cell_resistance_6:
+      name: "Bms1 cell resistance 6"
+    cell_resistance_7:
+      name: "Bms1 cell resistance 7"
+    cell_resistance_8:
+      name: "Bms1 cell resistance 8"
+    cell_resistance_9:
+      name: "Bms1 cell resistance 9"
+    cell_resistance_10:
+      name: "Bms1 cell resistance 10"
+    cell_resistance_11:
+      name: "Bms1 cell resistance 11"
+    cell_resistance_12:
+      name: "Bms1 cell resistance 12"
+    cell_resistance_13:
+      name: "Bms1 cell resistance 13"
+    cell_resistance_14:
+      name: "Bms1 cell resistance 14"
+    cell_resistance_15:
+      name: "Bms1 cell resistance 15"
+    cell_resistance_16:
+      name: "Bms1 cell resistance 16"
+
+    heating_current:
+      name: "Bms1 heating current"
+    charging_power:
+      name: "Bms1 charging power"
+    discharging_power:
+      name: "Bms1 discharging power"
+      id: device1_discharging_power
+    temperature_sensor_1:
+      name: "Bms1 temperature sensor 1"
+    temperature_sensor_2:
+      name: "Bms1 temperature sensor 2"
+    temperature_sensor_3:
+      name: "Bms1 temperature sensor 3"
+    temperature_sensor_4:
+      name: "Bms1 temperature sensor 4"
+    temperature_sensor_5:
+      name: "Bms1 temperature sensor 5"
+    power_tube_temperature:
+      name: "Bms1 power tube temperature"
+      id: device1_temp
+    state_of_charge:
+      name: "Bms1 state of charge"
+      id: device1_SOC
+    capacity_remaining:
+      name: "Bms1 capacity remaining"
+    total_battery_capacity_setting:
+      name: "Bms1 total battery capacity setting"
+    charging_cycles:
+      name: "Bms1 charging cycles"
+    total_charging_cycle_capacity:
+      name: "Bms1 total charging cycle capacity"
+    total_runtime:
+      name: "Bms1 total runtime"
+    balancing_current:
+      name: "Bms1 balancing current"
+    errors_bitmask:
+      name: "Bms1 errors bitmask"
+    emergency_time_countdown:
+      name: "Bms1 emergency time countdown"
+    charge_status_id:
+      name: "Bms1 charge status id"
+    charge_status_time_elapsed:
+      name: "BMS1 charge status time elapsed"
+
+  #Thong tin WiFi, nhiet do, uptime
+  - platform: wifi_signal
+    name: "WiFi Signal Strength"
+    update_interval: 60s
+  - platform: uptime
+    name: "ESP Uptime"
+  - platform: internal_temperature
+    name: "Nhiet Do ESP"
+
+switch:
+  - platform: jk_bms_ble
+    jk_bms_ble_id: bms1
+    charging:
+      name: "${bms1} charging"
+    discharging:
+      name: "${bms1} discharging"
+    balancer:
+      name: "${bms1} balancer"
+    emergency:
+      name: "${bms1} emergency"
+    heating:
+      name: "${bms1} heating"
+    disable_temperature_sensors:
+      name: "${bms1} disable temperature sensors"
+    display_always_on:
+      name: "${bms1} display always on"
+    smart_sleep:
+      name: "${bms1} smart sleep"
+    disable_pcl_module:
+      name: "${bms1} disable pcl module"
+    timed_stored_data:
+      name: "${bms1} timed stored data"
+    charging_float_mode:
+      name: "${bms1} charging float mode"
+
+  - platform: ble_client
+    ble_client_id: client1
+    id: ble_client_switch1
+    name: "${bms1} enable bluetooth connection"
+
+text_sensor:
+  - platform: jk_bms_ble
+    jk_bms_ble_id: bms1
+    errors:
+      name: "${bms1} errors"
+    total_runtime_formatted:
+      name: "${bms1} total runtime formatted"
+    charge_status:
+      name: "${bms1} charge status"
+
+  
+  # Thong tin WiFi,IP,MAC ESPHome
+  - platform: wifi_info
+    ip_address:
+      name: "ESP IP Address"
+    ssid:
+      name: "Connected WiFi SSID"
+    mac_address:
+      name: "MAC ESP"
+
